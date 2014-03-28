@@ -1,0 +1,41 @@
+apply plugin: 'groovy'
+apply plugin: 'maven'
+
+group = 'me.xyzlast'
+version = '0.2.10'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile gradleApi()
+    groovy localGroovy()
+}
+
+configurations {
+    includeLib
+    compile.extendsFrom includeLib
+    deployerJars
+}
+
+repositories {
+    flatDir {
+        name "fileRepo"
+        dirs "repo"
+    }
+}
+
+uploadArchives {
+    repositories {
+        add project.repositories.fileRepo
+        mavenDeployer {
+            repository(url: "http://192.168.13.209:8080/nexus/content/repositories/releases/") {
+                authentication(userName: 'admin', password: 'qwer12#$')
+            }
+        }
+    }
+}
