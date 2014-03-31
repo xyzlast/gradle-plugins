@@ -5,6 +5,7 @@ import org.gradle.api.Project
 import org.apache.tools.ant.taskdefs.condition.Os
 import groovy.json.JsonSlurper
 import org.gradle.api.Task
+import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Exec
 
 /**
@@ -16,25 +17,10 @@ public class BowerInstallPlugin implements Plugin<Project> {
         project.plugins.apply("java")
         project.plugins.apply("war")
 
-        project.task("bowerInstall") << {
-            try {
-                if(Os.isFamily(Os.FAMILY_WINDOWS)) {
-                    project.exec {
-                        commandLine = ['cmd', 'bower', 'install']
-                    }
-                } else {
-                    project.exec {
-                        commandLine = ['bower', 'install']
-                    }
-                }
-            } catch (Exception ex) {
-                println "Run bower failed!"
-                println ex.getMessage()
-                println ex.printStackTrace()
-                return
-            }
-
-            try {
+        project.task(dependsOn: 'bowerInstall', "copyJS") {
+            Task warTask = project.getTasksByName("war", true).iterator().next()
+            warTask.dependsOn "copyJS"
+            doLast {
                 def jsonHandler = new JsonSlurper()
                 def jsonFile = project.file("bower.json")
                 def conf = jsonHandler.parseText(jsonFile.getText("UTF-8"))
@@ -44,8 +30,6 @@ public class BowerInstallPlugin implements Plugin<Project> {
                 }
                 conf.install.sources.each {
                     it.value.each { f ->
-//                        def sourceFile = project.file(f)
-//                        String sourceName = sourceFile.name
                         int dotPos = f.lastIndexOf(".")
                         String ext = f.substring(dotPos + 1, f.length())
                         if (pathMap.containsKey(ext)) {
@@ -56,13 +40,21 @@ public class BowerInstallPlugin implements Plugin<Project> {
                         }
                     }
                 }
-            } catch(Exception ex) {
-                println "bower.json is wrong. please check install, install.path, install.sources properties"
-                ex.printStackTrace()
-                return
             }
         }
-        Task warTask = project.getTasksByName("war", true).iterator().next()
-        warTask.dependsOn "bowerInstall"
+
+        project.task(type: Exec, "bowerInstall") {
+            try {
+                if(Os.isFamily(Os.FAMILY_WINDOWS)) {
+                    commandLine = ['cmd', 'bower', 'install']
+                } else {
+                    commandLine = ['bower', 'install']
+                }
+            } catch (Exception ex) {
+                println "Run bower failed!"
+                println ex.getMessage()
+                println ex.printStackTrace()
+            }
+        }
     }
 }
