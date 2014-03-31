@@ -46,9 +46,9 @@ public class BowerInstallPlugin implements Plugin<Project> {
         project.task(type: Exec, "bowerInstall") {
             try {
                 if(Os.isFamily(Os.FAMILY_WINDOWS)) {
-                    commandLine = ['cmd', 'bower', 'install']
+                    commandLine 'bower.cmd', 'install'
                 } else {
-                    commandLine = ['bower', 'install']
+                    commandLine 'bower', 'install'
                 }
             } catch (Exception ex) {
                 println "Run bower failed!"
