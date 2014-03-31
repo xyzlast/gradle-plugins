@@ -2,7 +2,7 @@ apply plugin: 'groovy'
 apply plugin: 'maven'
 
 group = 'me.xyzlast'
-version = '0.2.10'
+version = '0.2.0-RELEASE'
 
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
@@ -22,20 +22,10 @@ configurations {
     deployerJars
 }
 
-repositories {
-    flatDir {
-        name "fileRepo"
-        dirs "repo"
-    }
-}
-
 uploadArchives {
     repositories {
-        add project.repositories.fileRepo
         mavenDeployer {
-            repository(url: "http://192.168.13.209:8080/nexus/content/repositories/releases/") {
-                authentication(userName: 'admin', password: 'qwer12#$')
-            }
+            repository(url: "file:///home/ykyoon/dev/code/xyzlast-maven-repo/releases")
         }
     }
 }

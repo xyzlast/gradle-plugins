@@ -13,39 +13,59 @@ class QueryDSLSupportPlugin implements Plugin<Project> {
     public static final String DIST = 'src/main/generated'
 
     @Override
-    void apply(Project project) {
-        project.plugins.apply("java")
-        project.sourceSets {
+    void apply(Project target) {
+        target.plugins.apply("java")
+        target.sourceSets {
             generated {
                 java {
                     srcDirs = [ DIST ]
                 }
             }
         }
-        project.task(type: JavaCompile, "generateQueryDSL") << {
-            source = project.sourceSets.main.java
 
-            if(project.configurations.hasProperty("provided")) {
-                classpath = project.configurations.compile + project.configurations.provided
-            } else {
-                classpath = project.configurations.compile
+        target.configurations {
+            querydsl
+        }
+
+        target.extensions.create("querydsl", QueryDSLPluginExtension)
+
+        target.dependencies {
+            compile("com.mysema.querydsl:querydsl-core:${target.querydsl.version}")
+            compile("com.mysema.querydsl:querydsl-jpa:${target.querydsl.version}")
+            compile("com.mysema.querydsl:querydsl-sql:${target.querydsl.version}")
+            querydsl("com.mysema.querydsl:querydsl-apt:${target.querydsl.version}") {
+                exclude group: 'com.google.guava'
             }
+        }
+
+        target.task(type: JavaCompile, "generateQueryDSL") {
+            source = target.sourceSets.main.java
+            classpath = target.configurations.compile + target.configurations.querydsl
             options.compilerArgs = [
                     "-proc:only",
-                    "-processor", "com.mysema.query.apt.jpa.JPAAnnotationProcessor"
+                    "-processor",
+                    "com.mysema.query.apt.jpa.JPAAnnotationProcessor",
             ]
-            destinationDir = project.file(DIST)
+            options.encoding = 'UTF-8'
+            destinationDir = target.sourceSets.generated.java.srcDirs.iterator().next()
         }
 
-        project.task("deleteQClasses") << {
-            project.delete project.file(DIST)
+        target.task("deleteQClasses") {
+            doLast {
+                target.delete target.file(DIST)
+            }
         }
 
-        Task compileJavaTask = project.getTasksByName("compileJava", true).iterator().next()
+        Task compileJavaTask = target.getTasksByName("compileJava", true).iterator().next()
         compileJavaTask.dependsOn "generateQueryDSL"
-        compileJavaTask.source project.file(DIST)
+        compileJavaTask.source target.file(DIST)
 
-        Task cleanTask = project.getTasksByName("clean", true).iterator().next()
+        Task cleanTask = target.getTasksByName("clean", true).iterator().next()
         cleanTask.dependsOn "deleteQClasses"
     }
+}
+
+
+class QueryDSLPluginExtension {
+    String version = "3.2.4"
 }
